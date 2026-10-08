@@ -1,10 +1,16 @@
 import streamlit as st
-from rembg import remove
+from rembg import remove, new_session
 from PIL import Image
 import io
 
 # 1. Page Configuration (Title and Icon)
 st.set_page_config(page_title="Background Remover Pro", page_icon="✨", layout="centered")
+
+# Cache model session in RAM so it loads only once and stays lightweight
+@st.cache_resource
+def get_rembg_session():
+    # 'u2net' is ~176MB (fits comfortably in Streamlit's 1GB RAM limit, unlike bria-rmbg which is 1.02GB)
+    return new_session("u2net")
 
 # 2. App UI Header
 st.title("✨ Background Remover Pro")
@@ -38,8 +44,9 @@ if uploaded_file is not None:
         # Display a loading spinner while processing
         with st.spinner("⏳ Removing background, please wait..."):
             try:
-                # Remove background
-                result_image = remove(original_image)
+                # Remove background using the cached lightweight model
+                session = get_rembg_session()
+                result_image = remove(original_image, session=session)
                 
                 # Update the result placeholder with the new image
                 with col2:
